@@ -153,6 +153,11 @@ instance HasEndpoint (sub :: *) => HasEndpoint (Vault :> sub) where
 instance HasEndpoint (sub :: *) => HasEndpoint (WithNamedContext x y sub) where
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
 
+#if MIN_VERSION_servant(0,11,0)
+instance HasEndpoint EmptyAPI where
+    getEndpoint _ _ = Nothing
+#endif
+
 instance ReflectMethod method => HasEndpoint (Verb method status cts a) where
     getEndpoint _ req = case pathInfo req of
         [] | requestMethod req == method -> Just ([], method)

@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
@@ -41,10 +42,12 @@ spec = describe "servant-ekg" $ do
   it "collects number of request" $ do
     withApp $ \port mvar -> do
       mgr <- newManager defaultManagerSettings
-      let runFn :: (Manager -> BaseUrl -> ExceptT e m a) -> m (Either e a)
+      let
 #if MIN_VERSION_servant(0,9,0)
-          runFn fn = runClientM $ fn mgr (ClientEnv mgr (BaseUrl Http "localhost" port ""))
+          runFn :: forall a. ClientM a -> IO (Either ServantError a)
+          runFn fn = runClientM fn (ClientEnv mgr (BaseUrl Http "localhost" port ""))
 #else
+          runFn :: (Manager -> BaseUrl -> ExceptT e m a) -> m (Either e a)
           runFn fn = runExceptT $ fn mgr (BaseUrl Http "localhost" port "")
 #endif
       _ <- runFn $ getEp "name" Nothing

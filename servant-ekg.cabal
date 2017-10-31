@@ -19,7 +19,7 @@ library
   hs-source-dirs:      lib
   build-depends:       base >=4.7 && < 4.10
                      , ekg-core
-                     , servant > 0.5 && < 0.10
+                     , servant > 0.5 && < 0.12
                      , http-types
                      , text
                      , time
