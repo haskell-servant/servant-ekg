@@ -17,7 +17,7 @@ source-repository HEAD
 library
   exposed-modules:     Servant.Ekg
   hs-source-dirs:      lib
-  build-depends:       base >=4.7 && < 4.10
+  build-depends:       base == 4.*
                      , ekg-core
                      , servant > 0.5 && < 0.12
                      , http-types
