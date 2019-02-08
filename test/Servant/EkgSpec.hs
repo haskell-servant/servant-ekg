@@ -1,11 +1,11 @@
-{-# LANGUAGE CPP                  #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds         #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Servant.EkgSpec (spec) where
 
@@ -14,19 +14,20 @@ import           Control.Concurrent
 import           Control.Monad.Trans.Except
 #endif
 import           Data.Aeson
-import           Data.Monoid
+import qualified Data.HashMap.Strict                        as H
+import           Data.Monoid                                ((<>))
 import           Data.Proxy
-import qualified Data.HashMap.Strict as H
 import           Data.Text
 import           GHC.Generics
-import           Network.HTTP.Client (defaultManagerSettings, newManager, Manager)
+import           Network.HTTP.Client                        (defaultManagerSettings,
+                                                             newManager)
 import           Network.Wai
 import           Network.Wai.Handler.Warp
 import           Servant
-import           Servant.Client
 import           Servant.API.Internal.Test.ComprehensiveAPI (comprehensiveAPI)
+import           Servant.Client
 import           System.Metrics
-import qualified System.Metrics.Counter as Counter
+import qualified System.Metrics.Counter                     as Counter
 import           Test.Hspec
 
 import           Servant.Ekg
@@ -39,11 +40,14 @@ spec = describe "servant-ekg" $ do
 
   let getEp :<|> postEp :<|> deleteEp = client testApi
 
-  it "collects number of request" $ do
+  it "collects number of request" $
     withApp $ \port mvar -> do
       mgr <- newManager defaultManagerSettings
       let
-#if MIN_VERSION_servant(0,9,0)
+#if MIN_VERSION_servant(0,13,0)
+          runFn :: forall a. ClientM a -> IO (Either ServantError a)
+          runFn fn = runClientM fn (mkClientEnv mgr (BaseUrl Http "localhost" port ""))
+#elif MIN_VERSION_servant(0,9,0)
           runFn :: forall a. ClientM a -> IO (Either ServantError a)
           runFn fn = runClientM fn (ClientEnv mgr (BaseUrl Http "localhost" port ""))
 #else

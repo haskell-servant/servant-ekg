@@ -4,10 +4,10 @@
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE PolyKinds           #-}
 module Servant.Ekg where
 
 import           Control.Concurrent.MVar
@@ -113,8 +113,14 @@ instance (KnownSymbol (path :: Symbol), HasEndpoint (sub :: *))
                 return (p:end, method)
             _ -> Nothing
 
+
+#if MIN_VERSION_servant(0,13,0)
+instance (KnownSymbol (capture :: Symbol), HasEndpoint (sub :: *))
+    => HasEndpoint (Capture' mods capture a :> sub) where
+#else
 instance (KnownSymbol (capture :: Symbol), HasEndpoint (sub :: *))
     => HasEndpoint (Capture capture a :> sub) where
+#endif
     getEndpoint _ req =
         case pathInfo req of
             _:ps -> do
@@ -123,10 +129,18 @@ instance (KnownSymbol (capture :: Symbol), HasEndpoint (sub :: *))
                 return (p:end, method)
             _ -> Nothing
 
+#if MIN_VERSION_servant(0,13,0)
+instance HasEndpoint (sub :: *) => HasEndpoint (Header' mods h a :> sub) where
+#else
 instance HasEndpoint (sub :: *) => HasEndpoint (Header h a :> sub) where
+#endif
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
 
+#if MIN_VERSION_servant(0,13,0)
+instance HasEndpoint (sub :: *) => HasEndpoint (QueryParam' mods (h :: Symbol) a :> sub) where
+#else
 instance HasEndpoint (sub :: *) => HasEndpoint (QueryParam (h :: Symbol) a :> sub) where
+#endif
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
 
 instance HasEndpoint (sub :: *) => HasEndpoint (QueryParams (h :: Symbol) a :> sub) where
@@ -135,7 +149,11 @@ instance HasEndpoint (sub :: *) => HasEndpoint (QueryParams (h :: Symbol) a :> s
 instance HasEndpoint (sub :: *) => HasEndpoint (QueryFlag h :> sub) where
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
 
+#if MIN_VERSION_servant(0,13,0)
+instance HasEndpoint (sub :: *) => HasEndpoint (ReqBody' mods cts a :> sub) where
+#else
 instance HasEndpoint (sub :: *) => HasEndpoint (ReqBody cts a :> sub) where
+#endif
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
 
 instance HasEndpoint (sub :: *) => HasEndpoint (RemoteHost :> sub) where
@@ -158,13 +176,21 @@ instance HasEndpoint EmptyAPI where
     getEndpoint _ _ = Nothing
 #endif
 
+#if MIN_VERSION_servant(0,12,0)
+instance HasEndpoint (sub :: *) => HasEndpoint (Summary s :> sub) where
+    getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
+
+instance HasEndpoint (sub :: *) => HasEndpoint (Description s :> sub) where
+    getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
+#endif
+
 instance ReflectMethod method => HasEndpoint (Verb method status cts a) where
     getEndpoint _ req = case pathInfo req of
         [] | requestMethod req == method -> Just ([], method)
-        _ -> Nothing
+        _                                -> Nothing
       where method = reflectMethod (Proxy :: Proxy method)
 
-instance HasEndpoint (Raw) where
+instance HasEndpoint Raw where
     getEndpoint _ _ = Just ([],"RAW")
 
 #if MIN_VERSION_servant(0,8,1)
