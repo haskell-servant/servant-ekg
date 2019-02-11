@@ -9,7 +9,6 @@
 
 module Servant.EkgSpec (spec) where
 
-import           Control.Concurrent
 import           Data.Aeson
 import qualified Data.HashMap.Strict                        as H
 import           Data.Monoid                                ((<>))
@@ -28,7 +27,6 @@ import           Servant.Test.ComprehensiveAPI              (comprehensiveAPI)
 import           Servant.API.Internal.Test.ComprehensiveAPI (comprehensiveAPI)
 #endif
 import           System.Metrics
-import qualified System.Metrics.Counter                     as Counter
 import           Test.Hspec
 
 import           Servant.Ekg
@@ -42,28 +40,35 @@ spec = describe "servant-ekg" $ do
   let getEp :<|> postEp :<|> deleteEp = client testApi
 
   it "collects number of request" $
-    withApp $ \port mvar -> do
+    withApp $ \port store -> do
       mgr <- newManager defaultManagerSettings
       let runFn :: ClientM a -> IO (Either ServantError a)
           runFn fn = runClientM fn (mkClientEnv mgr (BaseUrl Http "localhost" port ""))
       _ <- runFn $ getEp "name" Nothing
       _ <- runFn $ postEp (Greet "hi")
       _ <- runFn $ deleteEp "blah"
-      m <- readMVar mvar
-      case H.lookup "hello.:name.GET" m of
+
+      m <- sampleAll store
+      case H.lookup "servant.path.hello.:name.GET.responses.2XX" m of
         Nothing -> fail "Expected some value"
-        Just v  -> Counter.read (metersC2XX v) `shouldReturn` 1
-      case H.lookup "greet.POST" m of
+        Just v  -> v `shouldBe` Counter 1
+      case H.lookup "servant.path.greet.POST.responses.2XX" m of
         Nothing -> fail "Expected some value"
-        Just v  -> Counter.read (metersC2XX v) `shouldReturn` 1
-      case H.lookup "greet.:greetid.DELETE" m of
+        Just v  -> v `shouldBe` Counter 1
+      case H.lookup "servant.path.greet.:greetid.DELETE.responses.2XX" m of
         Nothing -> fail "Expected some value"
-        Just v  -> Counter.read (metersC2XX v) `shouldReturn` 1
+        Just v  -> v `shouldBe` Counter 1
 
   it "is comprehensive" $ do
-    let _typeLevelTest = monitorEndpoints comprehensiveAPI undefined undefined undefined
+    _typeLevelTest <- monitorEndpoints comprehensiveAPI =<< newStore
     True `shouldBe` True
 
+  it "enumerates the parts of an API correctly" $
+    enumerateEndpoints testApi `shouldBe` [
+      APIEndpoint ["hello",":name"] "GET",
+      APIEndpoint ["greet"] "POST",
+      APIEndpoint ["greet",":greetid"] "DELETE"
+    ]
 
 -- * Example
 
@@ -111,8 +116,8 @@ server = helloH :<|> postGreetH :<|> deleteGreetH
 test :: Application
 test = serve testApi server
 
-withApp :: (Port -> MVar (H.HashMap Text Meters) -> IO a) -> IO a
+withApp :: (Port -> Store -> IO a) -> IO a
 withApp a = do
   ekg <- newStore
-  ms <- newMVar mempty
-  withApplication (return $ monitorEndpoints testApi ekg ms test) $ \p -> a p ms
+  monitorEndpoints' <- monitorEndpoints testApi ekg
+  withApplication (return $ monitorEndpoints' test) $ \p -> a p ekg

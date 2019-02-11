@@ -1,12 +1,11 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds         #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
 module Main (main) where
 
-import           Control.Concurrent
 import           Data.Text                (Text)
 import           Network.Wai              (Application)
 import           Network.Wai.Handler.Warp
@@ -26,9 +25,9 @@ server = return
 
 servantEkgServer :: IO Application
 servantEkgServer = do
-  store <- newStore
-  ms <- newMVar mempty
-  return $ monitorEndpoints benchApi store ms (serve benchApi server)
+  mware <- monitorEndpoints benchApi =<< newStore
+
+  return $ mware (serve benchApi server)
 
 benchApp :: IO Application -> IO ()
 benchApp app = withApplication app $ \port ->

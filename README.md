@@ -20,10 +20,9 @@ import Servant.Ekg
 
 wrapWithEkg :: Proxy api -> Server api -> IO Application
 wrapWithEkg api server = do
-  store   <- newStore
-  metrics <- newMVar mempty
+  monitorEndpoints' <- monitorEndpoints api =<< newStore
 
-  return $ monitorEndpoints api store metrics (serve api server)
+  return $ monitorEndpoints' (serve api server)
 
 main :: IO ()
 main = do
