@@ -4,10 +4,10 @@
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE PolyKinds           #-}
 module Servant.Ekg where
 
 import           Control.Concurrent.MVar
@@ -116,6 +116,7 @@ instance (KnownSymbol (path :: Symbol), HasEndpoint (sub :: *))
                 return (p:end, method)
             _ -> Nothing
 
+
 instance (KnownSymbol (capture :: Symbol), HasEndpoint (sub :: *))
     => HasEndpoint (Capture' mods capture a :> sub) where
     getEndpoint _ req =
@@ -147,8 +148,10 @@ instance HasEndpoint (sub :: *) => HasEndpoint (QueryFlag h :> sub) where
 instance HasEndpoint (sub :: *) => HasEndpoint (ReqBody' mods cts a :> sub) where
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
 
+#if MIN_VERSION_servant(0,15,0)
 instance HasEndpoint (sub :: *) => HasEndpoint (StreamBody' mods framing ct a :> sub) where
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
+#endif
 
 instance HasEndpoint (sub :: *) => HasEndpoint (RemoteHost :> sub) where
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
@@ -168,19 +171,17 @@ instance HasEndpoint (sub :: *) => HasEndpoint (WithNamedContext x y sub) where
 instance ReflectMethod method => HasEndpoint (Verb method status cts a) where
     getEndpoint _ req = case pathInfo req of
         [] | requestMethod req == method -> Just ([], method)
-        _ -> Nothing
+        _                                -> Nothing
       where method = reflectMethod (Proxy :: Proxy method)
 
 instance ReflectMethod method => HasEndpoint (Stream method status framing ct a) where
     getEndpoint _ req = case pathInfo req of
         [] | requestMethod req == method -> Just ([], method)
-        _ -> Nothing
+        _                                -> Nothing
       where method = reflectMethod (Proxy :: Proxy method)
 
-instance HasEndpoint (Raw) where
+instance HasEndpoint Raw where
     getEndpoint _ _ = Just ([],"RAW")
 
-#if MIN_VERSION_servant(0,8,1)
 instance HasEndpoint (sub :: *) => HasEndpoint (CaptureAll (h :: Symbol) a :> sub) where
     getEndpoint _ = getEndpoint (Proxy :: Proxy sub)
-#endif
