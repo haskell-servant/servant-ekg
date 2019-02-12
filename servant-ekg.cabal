@@ -1,6 +1,6 @@
 cabal-version: >=1.10
 name:          servant-ekg
-version:       0.3.0.0
+version:       0.3.1.0
 synopsis:      Helpers for using ekg with servant
 description:   Helpers for using ekg with servant, e.g.. counters per endpoint.
 license:       BSD3

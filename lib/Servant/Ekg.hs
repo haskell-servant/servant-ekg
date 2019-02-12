@@ -184,3 +184,7 @@ instance HasEndpoint Raw where
 instance HasEndpoint (sub :: *) => HasEndpoint (CaptureAll (h :: Symbol) a :> sub) where
     getEndpoint        _ = getEndpoint        (Proxy :: Proxy sub)
     enumerateEndpoints _ = enumerateEndpoints (Proxy :: Proxy sub)
+
+instance HasEndpoint (sub :: *) => HasEndpoint (BasicAuth (realm :: Symbol) a :> sub) where
+    getEndpoint        _ = getEndpoint        (Proxy :: Proxy sub)
+    enumerateEndpoints _ = enumerateEndpoints (Proxy :: Proxy sub)
