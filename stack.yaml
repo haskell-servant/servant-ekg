@@ -1,6 +1,7 @@
-resolver: lts-13.6
+resolver: lts-15.14
 packages:
 - '.'
 extra-deps:
 - ekg-0.4.0.15
 - ekg-json-0.1.0.6
+- ekg-core-0.1.1.7@sha256:c4356aefea0e1e2f80a236d3b3f81b83b445c1e53519302e96477da0adee2e9f,2039
