@@ -13,7 +13,7 @@ import           Data.Monoid
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 import qualified Data.Text.Encoding          as T
-import           Data.Time.Clock
+import           GHC.Clock (getMonotonicTime)
 import           GHC.Generics                (Generic)
 import           Network.HTTP.Types          (Method, Status (..))
 import           Network.Wai                 (Middleware, responseStatus)
@@ -58,12 +58,14 @@ countResponseCodes (c2XX, c4XX, c5XX, cXXX) application request respond =
 
 responseTimeDistribution :: Distribution.Distribution -> Middleware
 responseTimeDistribution dist application request respond =
-    bracket getCurrentTime stop $ const $ application request respond
+    bracket getMonotonicTime stop $ const $ application request respond
   where
     stop t1 = do
-        t2 <- getCurrentTime
-        let dt = diffUTCTime t2 t1
-        Distribution.add dist $ fromRational $ (*1000) $ toRational dt
+        t2 <- getMonotonicTime
+        let
+            dt = t2 - t1
+            milliseconds = dt * 1000
+        Distribution.add dist milliseconds
 
 initializeMeters :: Store -> APIEndpoint -> IO Meters
 initializeMeters store APIEndpoint{..} = do
